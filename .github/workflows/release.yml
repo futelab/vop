@@ -77,7 +77,24 @@ jobs:
       - name: Verify publishable package
         run: bun run verify:ci
 
+      - name: Decide whether stable release should run
+        id: stable_gate
+        run: |
+          version=$(node -p "require('./packages/vop/package.json').version")
+          has_changesets=false
+          if find .changeset -maxdepth 1 -name '*.md' ! -name 'README.md' | grep -q .; then
+            has_changesets=true
+          fi
+
+          if [[ "$version" == *-* && "$has_changesets" != "true" ]]; then
+            echo "should_run=false" >> "$GITHUB_OUTPUT"
+            echo "Skipping stable release for prerelease version $version without pending changesets."
+          else
+            echo "should_run=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Create release PR or publish to npm
+        if: steps.stable_gate.outputs.should_run == 'true'
         uses: changesets/action@v1
         with:
           version: bun run version:package
