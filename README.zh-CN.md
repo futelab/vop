@@ -4,7 +4,9 @@
 
 [English README](./README.md) · [Docs](./docs/README.md) · [中文文档](./docs/README.zh-CN.md) · [案例](https://github.com/futelab/vop-examples) 
 
-![example-antd](./docs/assets/images/example-antd.gif)
+[![打开完整演示 GIF](./docs/assets/images/example-antd-cover.png)](./docs/assets/images/example-antd.gif)
+
+点击封面图查看完整演示 GIF。
 
 ## VOP 提供什么
 

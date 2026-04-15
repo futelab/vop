@@ -4,7 +4,9 @@ Visible Operations Protocol for route-aware AI execution in real web apps.
 
 [中文 README](./README.zh-CN.md) · [Docs](./docs/README.md) · [中文文档](./docs/README.zh-CN.md) · [Example](https://github.com/futelab/vop-examples) 
 
-![example-antd](./docs/assets/images/example-antd.gif)
+[![Open the full demo GIF](./docs/assets/images/example-antd-cover.png)](./docs/assets/images/example-antd.gif)
+
+Click the cover image to open the full demo GIF.
 
 ## What VOP includes
 
