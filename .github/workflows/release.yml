@@ -10,15 +10,63 @@ concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
 
+env:
+  ALPHA_PUBLISH_TAG_PREFIX: publish-alpha/
+  RELEASE_PUBLISH_TAG_PREFIX: publish-release/
+
 permissions:
   contents: write
   pull-requests: write
   id-token: write
 
 jobs:
+  tag-gate:
+    name: Check publish control tag
+    runs-on: ubuntu-latest
+    outputs:
+      alpha_enabled: ${{ steps.check.outputs.alpha_enabled }}
+      release_enabled: ${{ steps.check.outputs.release_enabled }}
+      matched_tag: ${{ steps.check.outputs.matched_tag }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check tags pointing at HEAD
+        id: check
+        run: |
+          tags="$(git tag --points-at HEAD)"
+          echo "Tags pointing at HEAD:"
+          echo "${tags:-<none>}"
+
+          matched_tag=""
+          alpha_enabled=false
+          release_enabled=false
+
+          if [[ "${{ github.event_name }}" == "push" && "${{ github.ref_name }}" == "alpha" ]]; then
+            matched_tag="$(printf '%s\n' "$tags" | grep "^${ALPHA_PUBLISH_TAG_PREFIX}" | head -n 1 || true)"
+            if [[ -n "$matched_tag" ]]; then
+              alpha_enabled=true
+            fi
+          fi
+
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.ref_name }}" == "release" ]]; then
+            matched_tag="$(printf '%s\n' "$tags" | grep "^${RELEASE_PUBLISH_TAG_PREFIX}" | head -n 1 || true)"
+            if [[ -n "$matched_tag" ]]; then
+              release_enabled=true
+            fi
+          fi
+
+          echo "matched_tag=$matched_tag" >> "$GITHUB_OUTPUT"
+          echo "alpha_enabled=$alpha_enabled" >> "$GITHUB_OUTPUT"
+          echo "release_enabled=$release_enabled" >> "$GITHUB_OUTPUT"
+
   publish-alpha:
     name: Publish alpha package
-    if: github.event_name == 'push' && github.ref_name == 'alpha'
+    needs: tag-gate
+    if: github.event_name == 'push' && github.ref_name == 'alpha' && needs.tag-gate.outputs.alpha_enabled == 'true'
     runs-on: ubuntu-latest
 
     steps:
@@ -60,7 +108,8 @@ jobs:
 
   release:
     name: Version or publish stable package
-    if: github.event_name == 'workflow_dispatch' && github.ref_name == 'release'
+    needs: tag-gate
+    if: github.event_name == 'workflow_dispatch' && github.ref_name == 'release' && needs.tag-gate.outputs.release_enabled == 'true'
     runs-on: ubuntu-latest
 
     steps:
