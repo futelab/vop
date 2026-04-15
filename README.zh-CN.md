@@ -1,4 +1,4 @@
-# vop
+# VOP  (Visible Operations Protocol)
 
 面向真实 Web 应用的路由感知 AI 执行协议。
 

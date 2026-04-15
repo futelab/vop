@@ -1,4 +1,4 @@
-# vop
+# VOP (Visible Operations Protocol)
 
 Visible Operations Protocol for route-aware AI execution in real web apps.
 
