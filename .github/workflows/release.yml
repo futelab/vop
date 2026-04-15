@@ -13,6 +13,7 @@ concurrency:
 permissions:
   contents: write
   pull-requests: write
+  id-token: write
 
 jobs:
   publish-alpha:
@@ -45,8 +46,6 @@ jobs:
 
       - name: Publish alpha to npm
         run: bun run release:alpha:ci
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   release:
     name: Version or publish stable package
@@ -102,4 +101,3 @@ jobs:
           title: "Prepare stable npm release"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
