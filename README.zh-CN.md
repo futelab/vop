@@ -8,6 +8,15 @@
 
 点击封面图查看完整演示 GIF。
 
+## AI 驱动页面执行是如何工作的
+
+VOP 通过一个很小的 planner API 和页面感知 runtime，把 OpenAI-compatible 模型接到真实业务页面上：
+
+1. 你的应用在 `vop.config.ts` 里声明路由、表单、表格和 assistant 元数据。
+2. 宿主应用把用户意图发送到 planner 接口，由一个 OpenAI-compatible 的 `/chat/completions` 模型生成结构化任务计划。
+3. VOP 把这个计划映射到当前页面，在 runtime 中执行支持的动作，并对高风险操作保留确认关口。
+4. assistant UI 会持续挂载在应用里，让模型能够导航页面、填写表单、读取可见状态，并完成面向用户的工作流。
+
 ## VOP 提供什么
 
 - 配置归一化

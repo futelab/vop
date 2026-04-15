@@ -10,10 +10,6 @@ concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
 
-env:
-  ALPHA_PUBLISH_TAG_PREFIX: publish-alpha/
-  RELEASE_PUBLISH_TAG_PREFIX: publish-release/
-
 permissions:
   contents: write
   pull-requests: write
@@ -22,7 +18,7 @@ permissions:
 jobs:
   publish-alpha:
     name: Publish alpha package
-    if: startsWith(github.ref_name, env.ALPHA_PUBLISH_TAG_PREFIX)
+    if: startsWith(github.ref_name, 'publish-alpha/')
     runs-on: ubuntu-latest
 
     steps:
@@ -64,7 +60,7 @@ jobs:
 
   release:
     name: Publish stable package
-    if: startsWith(github.ref_name, env.RELEASE_PUBLISH_TAG_PREFIX)
+    if: startsWith(github.ref_name, 'publish-release/')
     runs-on: ubuntu-latest
 
     steps:

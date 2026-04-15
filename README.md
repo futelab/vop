@@ -8,6 +8,15 @@ Visible Operations Protocol for route-aware AI execution in real web apps.
 
 Click the cover image to open the full demo GIF.
 
+## How AI-driven page execution works
+
+VOP connects an OpenAI-compatible model to real application pages through a small planner API and a page-aware runtime:
+
+1. Your app declares routes, forms, tables, and assistant metadata in `vop.config.ts`.
+2. The host app sends user intent to your planner endpoint, which uses an OpenAI-compatible `/chat/completions` model to produce a structured task plan.
+3. VOP maps that plan onto the current page, executes supported actions in the runtime, and keeps confirmation gates for high-risk operations.
+4. The assistant UI stays attached to the app so the model can navigate pages, fill forms, inspect visible state, and complete user-facing workflows.
+
 ## What VOP includes
 
 - config normalization
