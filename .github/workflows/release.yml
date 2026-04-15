@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - alpha
-      - release
   workflow_dispatch:
 
 concurrency:
@@ -18,7 +17,7 @@ permissions:
 jobs:
   publish-alpha:
     name: Publish alpha package
-    if: github.ref_name == 'alpha'
+    if: github.event_name == 'push' && github.ref_name == 'alpha'
     runs-on: ubuntu-latest
 
     steps:
@@ -51,7 +50,7 @@ jobs:
 
   release:
     name: Version or publish stable package
-    if: github.ref_name == 'release'
+    if: github.event_name == 'workflow_dispatch' && github.ref_name == 'release'
     runs-on: ubuntu-latest
 
     steps:
