@@ -2,9 +2,9 @@ name: Release
 
 on:
   push:
-    branches:
-      - alpha
-  workflow_dispatch:
+    tags:
+      - publish-alpha/**
+      - publish-release/**
 
 concurrency:
   group: release-${{ github.ref }}
@@ -20,53 +20,9 @@ permissions:
   id-token: write
 
 jobs:
-  tag-gate:
-    name: Check publish control tag
-    runs-on: ubuntu-latest
-    outputs:
-      alpha_enabled: ${{ steps.check.outputs.alpha_enabled }}
-      release_enabled: ${{ steps.check.outputs.release_enabled }}
-      matched_tag: ${{ steps.check.outputs.matched_tag }}
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Check tags pointing at HEAD
-        id: check
-        run: |
-          tags="$(git tag --points-at HEAD)"
-          echo "Tags pointing at HEAD:"
-          echo "${tags:-<none>}"
-
-          matched_tag=""
-          alpha_enabled=false
-          release_enabled=false
-
-          if [[ "${{ github.event_name }}" == "push" && "${{ github.ref_name }}" == "alpha" ]]; then
-            matched_tag="$(printf '%s\n' "$tags" | grep "^${ALPHA_PUBLISH_TAG_PREFIX}" | head -n 1 || true)"
-            if [[ -n "$matched_tag" ]]; then
-              alpha_enabled=true
-            fi
-          fi
-
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.ref_name }}" == "release" ]]; then
-            matched_tag="$(printf '%s\n' "$tags" | grep "^${RELEASE_PUBLISH_TAG_PREFIX}" | head -n 1 || true)"
-            if [[ -n "$matched_tag" ]]; then
-              release_enabled=true
-            fi
-          fi
-
-          echo "matched_tag=$matched_tag" >> "$GITHUB_OUTPUT"
-          echo "alpha_enabled=$alpha_enabled" >> "$GITHUB_OUTPUT"
-          echo "release_enabled=$release_enabled" >> "$GITHUB_OUTPUT"
-
   publish-alpha:
     name: Publish alpha package
-    needs: tag-gate
-    if: github.event_name == 'push' && github.ref_name == 'alpha' && needs.tag-gate.outputs.alpha_enabled == 'true'
+    if: startsWith(github.ref_name, env.ALPHA_PUBLISH_TAG_PREFIX)
     runs-on: ubuntu-latest
 
     steps:
@@ -107,9 +63,8 @@ jobs:
           NPM_CONFIG_PROVENANCE: true
 
   release:
-    name: Version or publish stable package
-    needs: tag-gate
-    if: github.event_name == 'workflow_dispatch' && github.ref_name == 'release' && needs.tag-gate.outputs.release_enabled == 'true'
+    name: Publish stable package
+    if: startsWith(github.ref_name, env.RELEASE_PUBLISH_TAG_PREFIX)
     runs-on: ubuntu-latest
 
     steps:
@@ -141,30 +96,15 @@ jobs:
       - name: Verify publishable package
         run: bun run verify:ci
 
-      - name: Decide whether stable release should run
-        id: stable_gate
+      - name: Ensure stable version
         run: |
           version=$(node -p "require('./packages/vop/package.json').version")
-          has_changesets=false
-          if find .changeset -maxdepth 1 -name '*.md' ! -name 'README.md' | grep -q .; then
-            has_changesets=true
+          if [[ "$version" == *-* ]]; then
+            echo "Stable publish tags require a non-prerelease version, received $version."
+            exit 1
           fi
 
-          if [[ "$version" == *-* && "$has_changesets" != "true" ]]; then
-            echo "should_run=false" >> "$GITHUB_OUTPUT"
-            echo "Skipping stable release for prerelease version $version without pending changesets."
-          else
-            echo "should_run=true" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Create release PR or publish to npm
-        if: steps.stable_gate.outputs.should_run == 'true'
-        uses: changesets/action@v1
-        with:
-          version: bun run version:package
-          publish: bun run release
-          commit: "Prepare stable npm release via Changesets"
-          title: "Prepare stable npm release"
+      - name: Publish stable to npm
+        run: bun run release
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_CONFIG_PROVENANCE: true
