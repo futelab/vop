@@ -1,4 +1,6 @@
 import fs from "node:fs";
+import { spawnSync } from "node:child_process";
+import os from "node:os";
 import path from "node:path";
 
 const rootDir = new URL("..", import.meta.url);
@@ -44,6 +46,10 @@ if (!consumerReadme.includes("npm install @futelab/vop")) {
 
 if (consumerReadme.includes("@futelab/vop/panel/code")) {
   throw new Error("Public README still documents the retired panel/code subpath.");
+}
+
+if (packageJson.dependencies?.vite || packageJson.devDependencies?.vite) {
+  throw new Error("The public package should not depend on vite for config generation.");
 }
 
 if (!skipDocsCheck) {
@@ -94,6 +100,144 @@ for (const relativePath of forbiddenNestedBuildOutputs) {
   const absolutePath = path.join(rootDir.pathname, relativePath);
   if (fs.existsSync(absolutePath)) {
     throw new Error(`Unexpected nested build output remains: ${relativePath}`);
+  }
+}
+
+const generateFixtureDir = fs.mkdtempSync(path.join(os.tmpdir(), "vop-generate-"));
+const generateConfigPath = path.join(generateFixtureDir, "vop.config.ts");
+const generateOutputDir = path.join(generateFixtureDir, "generated");
+const generateScriptPath = path.join(rootDir.pathname, "packages/vop/scripts/generate-vop.mjs");
+const bumpScriptPath = path.join(rootDir.pathname, "scripts/bump-alpha-version.mjs");
+
+fs.writeFileSync(
+  generateConfigPath,
+  `import { defineRoutePages, defineVopConfig, type VOPPublicConfig } from "@futelab/vop/sdk";
+
+const planner: NonNullable<VOPPublicConfig["planner"]> = {
+  baseURL: "/api/vop-planner",
+  model: "Qwen/Qwen3.5-397B-A17B-FP8",
+  title: "VOP Copilot",
+};
+
+const pages = defineRoutePages<
+  VOPPublicConfig["pages"]
+>([
+  {
+    route: "/dashboard/analytics",
+    title: "Dashboard Analytics",
+    group: "Dashboard",
+  },
+  {
+    route: "/demos/form",
+    title: "Form Demo",
+    kind: "form",
+    fields: {
+      title: {
+        kind: "text",
+        selector: 'input[name="title"]',
+        label: "Title",
+        required: true,
+      },
+    },
+  },
+] satisfies VOPPublicConfig["pages"]);
+
+export default defineVopConfig({
+  planner,
+  pages,
+} satisfies VOPPublicConfig);
+`,
+  "utf8",
+);
+
+const generateResult = spawnSync(
+  process.execPath,
+  [generateScriptPath, "--config", generateConfigPath, "--out", generateOutputDir],
+  {
+    encoding: "utf8",
+  },
+);
+
+if (generateResult.status !== 0) {
+  throw new Error(
+    [
+      "generate-vop smoke test failed.",
+      generateResult.stdout.trim(),
+      generateResult.stderr.trim(),
+    ]
+      .filter(Boolean)
+      .join("\n"),
+  );
+}
+
+if (generateResult.stderr.includes("ExperimentalWarning")) {
+  throw new Error("generate-vop should not print Node experimental warnings.");
+}
+
+const generatedRuntimePath = path.join(generateOutputDir, "vop.generated.ts");
+if (!fs.existsSync(generatedRuntimePath)) {
+  throw new Error("generate-vop smoke test did not produce vop.generated.ts.");
+}
+
+const generatedRuntime = fs.readFileSync(generatedRuntimePath, "utf8");
+if (!generatedRuntime.includes('"/dashboard/analytics"')) {
+  throw new Error("Generated runtime is missing the dashboard route.");
+}
+
+if (!generatedRuntime.includes('"/demos/form"')) {
+  throw new Error("Generated runtime is missing the form route.");
+}
+
+const alphaFixtureDir = fs.mkdtempSync(path.join(os.tmpdir(), "vop-alpha-bump-"));
+const alphaPackageFiles = [
+  path.join(alphaFixtureDir, "vop.package.json"),
+  path.join(alphaFixtureDir, "protocol.package.json"),
+  path.join(alphaFixtureDir, "runtime.package.json"),
+  path.join(alphaFixtureDir, "panel.package.json"),
+];
+
+for (const [index, packageFile] of alphaPackageFiles.entries()) {
+  fs.writeFileSync(
+    packageFile,
+    `${JSON.stringify(
+      {
+        name: index === 0 ? "@futelab/vop" : `@futelab/internal-${index}`,
+        version: "0.1.0-alpha.0",
+      },
+      null,
+      2,
+    )}\n`,
+  );
+}
+
+const bumpResult = spawnSync(process.execPath, [bumpScriptPath], {
+  encoding: "utf8",
+  env: {
+    ...process.env,
+    VOP_ALPHA_PACKAGE_FILES: JSON.stringify(alphaPackageFiles),
+    VOP_ALPHA_PUBLISHED_VERSIONS_JSON: JSON.stringify([
+      "0.1.0-alpha.0",
+      "0.1.0-alpha.1",
+    ]),
+  },
+});
+
+if (bumpResult.status !== 0) {
+  throw new Error(
+    [
+      "alpha bump smoke test failed.",
+      bumpResult.stdout.trim(),
+      bumpResult.stderr.trim(),
+    ]
+      .filter(Boolean)
+      .join("\n"),
+  );
+}
+
+for (const packageFile of alphaPackageFiles) {
+  const packageJson = JSON.parse(fs.readFileSync(packageFile, "utf8"));
+  if (packageJson.version !== "0.1.0-alpha.2") {
+    throw new Error(`Alpha bump smoke test failed for ${packageFile}.`);
   }
 }
 

@@ -44,6 +44,9 @@ jobs:
       - name: Verify publishable package
         run: bun run verify:ci
 
+      - name: Bump alpha version for this run
+        run: bun run bump:alpha:ci
+
       - name: Publish alpha to npm
         run: bun run release:alpha:ci
 

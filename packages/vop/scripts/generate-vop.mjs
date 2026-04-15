@@ -1,6 +1,6 @@
 import fs from "node:fs";
+import { stripTypeScriptTypes } from "node:module";
 import path from "node:path";
-import { transformWithEsbuild } from "vite";
 
 function parseArgs(argv) {
   const args = {
@@ -26,6 +26,36 @@ function parseArgs(argv) {
   }
 
   return args;
+}
+
+function stripTypesForExecution(source) {
+  if (typeof stripTypeScriptTypes !== "function") {
+    throw new Error(
+      "This Node runtime cannot load vop.config.ts without external transpilers. Use a Node version with node:module.stripTypeScriptTypes support.",
+    );
+  }
+
+  const originalEmitWarning = process.emitWarning;
+  process.emitWarning = (warning, ...args) => {
+    const warningName = typeof warning === "string" ? args[0] : warning?.name;
+    const warningMessage =
+      typeof warning === "string" ? warning : warning?.message ?? String(warning);
+
+    if (
+      warningName === "ExperimentalWarning" &&
+      warningMessage.includes("stripTypeScriptTypes")
+    ) {
+      return;
+    }
+
+    return Reflect.apply(originalEmitWarning, process, [warning, ...args]);
+  };
+
+  try {
+    return stripTypeScriptTypes(source);
+  } finally {
+    process.emitWarning = originalEmitWarning;
+  }
 }
 
 async function loadTsModule(filePath) {
@@ -125,18 +155,9 @@ const composeVopPages = (routePages, actionablePages = []) => {
   ];
 };`,
     );
-  const transformed = await transformWithEsbuild(source, filePath, {
-    loader: "ts",
-    format: "esm",
-    sourcemap: false,
-    tsconfigRaw: {
-      compilerOptions: {
-        target: "es2020",
-      },
-    },
-  });
+  const transformed = stripTypesForExecution(source);
 
-  const encoded = Buffer.from(transformed.code).toString("base64");
+  const encoded = Buffer.from(transformed).toString("base64");
   return import(`data:text/javascript;base64,${encoded}`);
 }
 

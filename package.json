@@ -8,6 +8,7 @@
   ],
   "scripts": {
     "build": "turbo run build",
+    "bump:alpha:ci": "node ./scripts/bump-alpha-version.mjs",
     "changeset": "changeset",
     "pack:package": "npm_config_cache=/tmp/.npm-cache npm pack --json ./packages/vop --pack-destination /tmp",
     "release:alpha:ci": "node ./scripts/ensure-alpha-version.mjs && changeset publish --tag alpha",
