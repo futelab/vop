@@ -1,0 +1,1 @@
+{"version":3,"file":"confirmation-policy.d.ts","sourceRoot":"","sources":["confirmation-policy.ts"],"names":[],"mappings":"AAAA,MAAM,MAAM,YAAY,GAAG,KAAK,GAAG,MAAM,CAAC;AAE1C,MAAM,WAAW,qBAAqB;IACpC,IAAI,EAAE,MAAM,GAAG,UAAU,CAAC;IAC1B,KAAK,CAAC,EAAE,MAAM,CAAC;IACf,OAAO,CAAC,EAAE,MAAM,CAAC;CAClB"}

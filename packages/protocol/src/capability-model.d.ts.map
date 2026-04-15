@@ -1,0 +1,1 @@
+{"version":3,"file":"capability-model.d.ts","sourceRoot":"","sources":["capability-model.ts"],"names":[],"mappings":"AAAA,MAAM,MAAM,iBAAiB,GACzB,YAAY,GACZ,OAAO,GACP,YAAY,GACZ,UAAU,GACV,cAAc,CAAC;AAEnB,MAAM,WAAW,uBAAuB;IACtC,EAAE,EAAE,MAAM,CAAC;IACX,IAAI,EAAE,iBAAiB,CAAC;IACxB,KAAK,EAAE,MAAM,CAAC;CACf"}

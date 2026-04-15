@@ -1,0 +1,29 @@
+{
+  "name": "futelab-vop-repo",
+  "private": true,
+  "license": "Apache-2.0",
+  "packageManager": "bun@1.3.10",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "turbo run build",
+    "changeset": "changeset",
+    "pack:package": "npm_config_cache=/tmp/.npm-cache npm pack --json ./packages/vop --pack-destination /tmp",
+    "release:alpha:ci": "node ./scripts/ensure-alpha-version.mjs && changeset publish --tag alpha",
+    "release:alpha": "changeset publish --tag alpha",
+    "release": "changeset publish",
+    "test:ci": "VOP_SKIP_DOC_CHECKS=1 node ./scripts/test-contracts.mjs",
+    "typecheck": "turbo run typecheck",
+    "test": "node ./scripts/test-contracts.mjs",
+    "verify:ci": "npm run build && npm run typecheck && npm run test:ci && npm run pack:package",
+    "verify": "npm run build && npm run typecheck && npm run test && npm run pack:package",
+    "version:package": "changeset version"
+  },
+  "devDependencies": {
+    "@changesets/cli": "^2.30.0",
+    "@types/node": "^25.5.2",
+    "turbo": "^2.1.3",
+    "typescript": "^5.6.3"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "composite": true,
+    "rootDir": "..",
+    "types": ["node", "react"],
+    "jsx": "react-jsx"
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "../protocol/src/**/*.ts",
+    "../runtime/src/**/*.ts",
+    "../panel/src/**/*.ts",
+    "../panel/src/**/*.tsx"
+  ]
+}
